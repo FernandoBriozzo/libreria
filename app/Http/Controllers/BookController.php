@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Book;
+use App\Models\Genre;
+use App\Models\Author;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
 
 class BookController extends Controller
 {
@@ -14,7 +19,8 @@ class BookController extends Controller
      */
     public function index()
     {
-        $books = Book::orderBy('created_at', 'desc')->get();
+        //$books = Book::orderBy('created_at', 'desc')->get();
+        $books = Book::join('genres', 'genre_id', '=', 'genres.id')->join('authors', 'author_id', '=', 'authors.id')->select('books.*', 'genres.name as genre', 'authors.name as author')->get();
 
         return View('books.index')->with('books', $books);
     }
@@ -26,7 +32,9 @@ class BookController extends Controller
      */
     public function create()
     {
-        return View('books.create');
+        $generos = Genre::orderBy('name')->get();
+        $autores = Author::orderBy('name')->get();
+        return View('books.create', ['genres' => $generos, 'authors' => $autores]);
     }
 
     /**
@@ -37,10 +45,20 @@ class BookController extends Controller
      */
     public function store(Request $request)
     {
-
+        $this->validate($request, [
+            "name" => 'required'
+        ]);
+        if ($request->file('poster') != null) {
+            $path = Storage::putFile('posters', $request->file('poster'));
+        } else {
+            $path = null;
+        }
         Book::create([
             'name' => $request->name,
-            'description' => $request->description
+            'description' => $request->description,
+            'author_id' => $request->author,
+            'genre_id' => $request->genre,
+            'poster' => $path
         ]);
         return redirect('books')->with('success','Item created successfully!');
     }
@@ -67,8 +85,10 @@ class BookController extends Controller
     public function edit($id)
     {
         $book = Book::find($id);
+        $genres = Genre::all();
+        $authors = Author::all();
 
-        return View('books.edit')->with('book', $book);
+        return View('books.edit', ['book' => $book, 'genres' => $genres, 'authors' => $authors]);
     }
 
     /**
@@ -80,10 +100,22 @@ class BookController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($request->file('poster') != null) {
+            $path = Book::find($id)->poster;
+            Storage::delete($path);
+            $path = Storage::putFile('posters', $request->file('poster'));
+        } else {
+
+            $path = Book::find($id)->poster;
+        }
+        
         $book = Book::find($id);
 
         $book->name = $request->name;
-        $book->description =$request->description;
+        $book->description = $request->description;
+        $book->author_id = $request->author;
+        $book->genre_id = $request->genre;
+        $book->poster = $path;
 
         $book->save();
 
@@ -98,12 +130,14 @@ class BookController extends Controller
      */
     public function destroy($id)
     {
+        $path = Book::find($id)->poster;
+        Storage::delete($path);
         Book::destroy($id);
         return redirect('books');
     }
 
     public function books() {
-        $books = Book::All();
+        $books = Book::All()->toJson();
         return Response($books);
     }
 }

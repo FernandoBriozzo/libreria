@@ -21,7 +21,7 @@
 
 <!-- if there are creation errors, they will show here -->
 
-<form method="POST" action="../{{$book->id}}">
+<form method="POST" action="../{{$book->id}}" enctype="multipart/form-data">
 {{csrf_field()}}
 <input type="hidden" name="_method" value="PUT">
 
@@ -33,6 +33,29 @@
     <div class="form-group">
         <label for="description">Descripción: </label>
         <input type="text" name="description" value="{{$book->description}}">
+    </div>
+
+    <div class="form-group">
+        <label for="author">Auhtor: </label>
+        <select id="author" name="author" required>
+            @foreach ($authors as $author)
+            <option value="{{ $author->id }}">{{ $author->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="genre">Genre: </label>
+        <select id="genre" name="genre" required>
+            @foreach ($genres as $genre)
+            <option value="{{ $genre->id }}">{{ $genre->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="poster">Poster: </label>
+        <input type="file" id="poster" name="poster">
     </div>
 
     <button type="submit" class="btn btn-primary">Editar</button>
